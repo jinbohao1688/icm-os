@@ -180,5 +180,3 @@ pytest tests/ gbt/tests/ -v
 
 - [jinac.vxni.ink](https://jinac.vxni.ink)
 - [jinac.pages.dev](https://jinac.pages.dev)
-
-建议阅读顺序：ICM-OS 总体设计 → CDM 意图分解与形式化验证 → GBT 语义中间表示与二进制翻译
