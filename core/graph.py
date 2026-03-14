@@ -1,0 +1,95 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Dict, List
+
+import networkx as nx
+
+from core.primitive import CapabilityPrimitive
+from core.registry import CapabilityPrimitiveRegistry
+
+
+@dataclass
+class CapabilityGraph:
+    """
+    Directed capability graph (Definition 3 in the paper).
+    Nodes are capability primitives; edges represent data/control flow.
+    """
+
+    graph: nx.DiGraph
+
+    def __init__(self) -> None:
+        self.graph = nx.DiGraph()
+
+    def add_node(self, primitive: CapabilityPrimitive) -> None:
+        """
+        Add a primitive node keyed by its id.
+        """
+        self.graph.add_node(primitive.id, primitive=primitive)
+
+    def add_edge(self, from_id: str, to_id: str) -> None:
+        """
+        Add a directed edge from one primitive id to another.
+        """
+        self.graph.add_edge(from_id, to_id)
+
+    def get_execution_order(self) -> List[CapabilityPrimitive]:
+        """
+        Return primitives in a topologically sorted execution order.
+        Raises NetworkXUnfeasible if the graph is cyclic.
+        """
+        order: List[CapabilityPrimitive] = []
+        for node_id in nx.topological_sort(self.graph):
+            data = self.graph.nodes[node_id]
+            primitive: CapabilityPrimitive = data["primitive"]
+            order.append(primitive)
+        return order
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Serialize graph to a dict:
+        {
+          "nodes": [{"id": ..., "version": ...}, ...],
+          "edges": [{"from": ..., "to": ...}, ...]
+        }
+        """
+        nodes: List[Dict[str, Any]] = []
+        for node_id, data in self.graph.nodes(data=True):
+            primitive: CapabilityPrimitive = data["primitive"]
+            nodes.append(
+                {
+                    "id": primitive.id,
+                    "version": getattr(primitive, "version", "1.0.0"),
+                }
+            )
+
+        edges: List[Dict[str, str]] = [
+            {"from": u, "to": v} for u, v in self.graph.edges()
+        ]
+        return {"nodes": nodes, "edges": edges}
+
+    @classmethod
+    def from_dict(
+        cls, data: Dict[str, Any], registry: CapabilityPrimitiveRegistry
+    ) -> "CapabilityGraph":
+        """
+        Deserialize a CapabilityGraph from dict representation using a registry
+        to look up concrete primitive instances.
+        """
+        graph = cls()
+        for node in data.get("nodes", []):
+            pid = node if isinstance(node, str) else node.get("id")
+            version = "latest" if isinstance(node, str) else node.get("version", "latest")
+            if not pid:
+                continue
+            primitive = registry.get(pid, version)
+            graph.add_node(primitive)
+
+        for edge in data.get("edges", []):
+            from_id = edge[0] if isinstance(edge, list) else edge.get("from")
+            to_id = edge[1] if isinstance(edge, list) else edge.get("to")
+            if from_id and to_id:
+                graph.add_edge(from_id, to_id)
+
+        return graph
+
