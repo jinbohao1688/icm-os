@@ -10,7 +10,7 @@ class HTMLParsePrimitive(CapabilityPrimitive):
         super().__init__(
             id="HTML_PARSE",
             type_signature=TypeSignature(
-                type_in=["HTMLParseInput"], type_out=["HTMLParseOutput"]
+                type_in=["http_response", "text"], type_out=["dom_tree"]
             ),
             semantic_descriptor="Parse HTML into a DOM-like tree.",
         )
@@ -30,7 +30,7 @@ class CSSLayoutPrimitive(CapabilityPrimitive):
         super().__init__(
             id="CSS_LAYOUT",
             type_signature=TypeSignature(
-                type_in=["CSSLayoutInput"], type_out=["CSSLayoutOutput"]
+                type_in=["dom_tree"], type_out=["layout", "dom_tree"]
             ),
             semantic_descriptor="Compute layout information from a DOM tree and styles.",
         )
@@ -56,7 +56,7 @@ class JSExecutePrimitive(CapabilityPrimitive):
         super().__init__(
             id="JS_EXECUTE",
             type_signature=TypeSignature(
-                type_in=["JSExecuteInput"], type_out=["JSExecuteOutput"]
+                type_in=["dom_tree"], type_out=["dom_tree"]
             ),
             semantic_descriptor="Execute JavaScript against a DOM tree.",
         )
@@ -77,7 +77,7 @@ class WindowRenderPrimitive(CapabilityPrimitive):
         super().__init__(
             id="WINDOW_RENDER",
             type_signature=TypeSignature(
-                type_in=["WindowRenderInput"], type_out=["WindowRenderOutput"]
+                type_in=["text", "lines", "layout", "dom_tree", "matches"], type_out=["frame_id"]
             ),
             semantic_descriptor="Render a layout tree into a window/frame.",
         )

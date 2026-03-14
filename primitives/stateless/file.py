@@ -10,7 +10,7 @@ class FileOpenPrimitive(CapabilityPrimitive):
         super().__init__(
             id="FILE_OPEN",
             type_signature=TypeSignature(
-                type_in=["FileOpenInput"], type_out=["FileOpenOutput"]
+                type_in=["text"], type_out=["file_id"]
             ),
             semantic_descriptor="Open a file handle.",
         )
@@ -30,7 +30,7 @@ class FileReadPrimitive(CapabilityPrimitive):
         super().__init__(
             id="FILE_READ",
             type_signature=TypeSignature(
-                type_in=["FileReadInput"], type_out=["FileReadOutput"]
+                type_in=["file_id"], type_out=["text", "file_content"]
             ),
             semantic_descriptor="Read from an open file handle.",
         )
@@ -50,7 +50,7 @@ class FileWritePrimitive(CapabilityPrimitive):
         super().__init__(
             id="FILE_WRITE",
             type_signature=TypeSignature(
-                type_in=["FileWriteInput"], type_out=["FileWriteOutput"]
+                type_in=["file_id", "text"], type_out=["bytes_count"]
             ),
             semantic_descriptor="Write to an open file handle.",
         )
@@ -68,7 +68,7 @@ class FileClosePrimitive(CapabilityPrimitive):
         super().__init__(
             id="FILE_CLOSE",
             type_signature=TypeSignature(
-                type_in=["FileCloseInput"], type_out=["FileCloseOutput"]
+                type_in=["file_id", "bytes_count", "text"], type_out=["bytes_count"]
             ),
             semantic_descriptor="Close an open file handle.",
         )

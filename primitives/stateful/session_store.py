@@ -44,7 +44,7 @@ class SessionStore(CapabilityPrimitive):
         super().__init__(
             id="SESSION_STORE",
             type_signature=TypeSignature(
-                type_in=["SessionStoreInput"], type_out=["SessionStoreOutput"]
+                type_in=["text"], type_out=["text", "kv_result", "session_key"]
             ),
             semantic_descriptor="Per-session key-value store with get/set/delete operations.",
             is_stateful=True,

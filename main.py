@@ -8,7 +8,7 @@ from rich.table import Table
 
 from ams.decomposer import DecompositionError, IntentDecomposer
 from benchmarks.intents import TEST_INTENTS
-from core.graph import CapabilityGraph
+from core.graph import CapabilityGraph, GraphExecutor
 from core.registry import build_default_registry
 from core.validator import GraphValidator
 from security.policy import PolicyEngine
@@ -22,6 +22,7 @@ def run_benchmarks() -> None:
     decomposer = IntentDecomposer(registry=registry)
     policy_engine = PolicyEngine()
     taint_tracker = TaintTracker()
+    executor = GraphExecutor(taint_tracker)
 
     table = Table(title="ICM-OS Intent Decomposition Benchmarks")
     table.add_column("Intent", style="cyan", overflow="fold", max_width=40)
@@ -57,7 +58,8 @@ def run_benchmarks() -> None:
         for node_id in graph.graph.nodes():
             used_primitives.add(node_id)
 
-        # Evaluate security policies (taint tracking can be extended when executor is added).
+        # Execute the graph to populate taint information, then evaluate policies.
+        executor.execute(graph, session_id=session_id)
         violations = policy_engine.evaluate(graph, taint_tracker)
         if violations:
             policy_status = f"BLOCK ({len(violations)})"

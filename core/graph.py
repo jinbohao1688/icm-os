@@ -7,6 +7,7 @@ import networkx as nx
 
 from core.primitive import CapabilityPrimitive
 from core.registry import CapabilityPrimitiveRegistry
+from security.taint import TaintLabel, TaintTracker
 
 
 @dataclass
@@ -92,4 +93,45 @@ class CapabilityGraph:
                 graph.add_edge(from_id, to_id)
 
         return graph
+
+
+class GraphExecutor:
+    """
+    Execute a capability graph in topological order while performing
+    session-scoped taint tracking.
+    """
+
+    def __init__(self, taint_tracker: TaintTracker) -> None:
+        self.taint_tracker = taint_tracker
+
+    def execute(self, graph: CapabilityGraph, session_id: str) -> Dict[str, Any]:
+        results: Dict[str, Dict[str, Any]] = {}
+
+        for primitive in graph.get_execution_order():
+            predecessors = list(graph.graph.predecessors(primitive.id))
+            input_data: Dict[str, Any] = {}
+            for pred_id in predecessors:
+                input_data.update(results.get(pred_id, {}))
+
+            output = primitive.invoke(input_data, session_id)
+            results[primitive.id] = output
+
+            # High-risk primitives: tag outputs with appropriate taint labels.
+            data_id = f"{primitive.id}_out"
+            if primitive.id in ("HTTP_GET", "HTTP_POST", "TCP_CONNECT"):
+                self.taint_tracker.tag(data_id, TaintLabel.NETWORK)
+            elif primitive.id == "FILE_READ":
+                self.taint_tracker.tag(data_id, TaintLabel.FILE_UNTRUSTED)
+            else:
+                self.taint_tracker.tag(data_id, TaintLabel.CLEAN)
+
+            # Propagate taint from all predecessors to current output.
+            for pred_id in predecessors:
+                self.taint_tracker.propagate(f"{pred_id}_out", data_id)
+
+        # Flatten results for caller.
+        flat: Dict[str, Any] = {}
+        for pid, out in results.items():
+            flat[pid] = out
+        return flat
 

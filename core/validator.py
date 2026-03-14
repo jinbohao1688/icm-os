@@ -26,8 +26,10 @@ class GraphValidator:
             v_prim: CapabilityPrimitive = g.nodes[v_id]["primitive"]
             out_types = set(u_prim.type_signature.type_out)
             in_types = set(v_prim.type_signature.type_in)
-            # Prototype: skip strict type checking, any connection is allowed
-            pass
+            if not out_types.intersection(in_types):
+                failed.append(
+                    f"Type mismatch: {u_prim.id} outputs {list(out_types)} incompatible with {v_prim.id} inputs {list(in_types)}"
+                )
 
         return ValidationResult(
             passed=not failed,

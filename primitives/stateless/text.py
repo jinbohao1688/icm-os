@@ -10,7 +10,7 @@ class UTF8DecodePrimitive(CapabilityPrimitive):
         super().__init__(
             id="UTF8_DECODE",
             type_signature=TypeSignature(
-                type_in=["UTF8DecodeInput"], type_out=["UTF8DecodeOutput"]
+                type_in=["text", "file_content", "raw_bytes"], type_out=["text"]
             ),
             semantic_descriptor="Decode UTF-8 encoded bytes into text.",
         )
@@ -30,7 +30,7 @@ class TextLayoutPrimitive(CapabilityPrimitive):
         super().__init__(
             id="TEXT_LAYOUT",
             type_signature=TypeSignature(
-                type_in=["TextLayoutInput"], type_out=["TextLayoutOutput"]
+                type_in=["text", "translated_text"], type_out=["text", "lines"]
             ),
             semantic_descriptor="Layout text into lines.",
         )
@@ -50,7 +50,7 @@ class ScrollInputPrimitive(CapabilityPrimitive):
         super().__init__(
             id="SCROLL_INPUT",
             type_signature=TypeSignature(
-                type_in=["ScrollInput"], type_out=["ScrollOutput"]
+                type_in=["frame_id", "position"], type_out=["position"]
             ),
             semantic_descriptor="Scroll within a rendered frame.",
         )
@@ -69,7 +69,7 @@ class SearchIndexPrimitive(CapabilityPrimitive):
         super().__init__(
             id="SEARCH_INDEX",
             type_signature=TypeSignature(
-                type_in=["SearchIndexInput"], type_out=["SearchIndexOutput"]
+                type_in=["text", "lines"], type_out=["text", "matches"]
             ),
             semantic_descriptor="Search within text and return match positions.",
         )

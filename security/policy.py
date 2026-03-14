@@ -76,7 +76,7 @@ class NoTaintToAMS(GraphPolicy):
 
 class NoSensitiveDataExfiltration(GraphPolicy):
     """
-    Detect FILE_READ -> NLP_ENCODE -> HTTP_POST style data exfiltration.
+    Detect data exfiltration of file content towards network outputs.
     """
 
     def __init__(self) -> None:
@@ -89,29 +89,19 @@ class NoSensitiveDataExfiltration(GraphPolicy):
         self, graph: CapabilityGraph, taint_tracker: TaintTracker
     ) -> Optional[PolicyViolation]:
         g = graph.graph
-
         file_read_nodes = [n for n in g.nodes() if n == "FILE_READ"]
-        nlp_encode_nodes = [n for n in g.nodes() if n == "NLP_ENCODE"]
         http_post_nodes = [n for n in g.nodes() if n == "HTTP_POST"]
 
-        if not (file_read_nodes and nlp_encode_nodes and http_post_nodes):
+        if not (file_read_nodes and http_post_nodes):
             return None
 
-        # Look for a path FILE_READ -> NLP_ENCODE -> HTTP_POST.
-        for f_node in file_read_nodes:
-            for n_node in nlp_encode_nodes:
-                if not nx.has_path(g, f_node, n_node):
-                    continue
-                for h_node in http_post_nodes:
-                    if not nx.has_path(g, n_node, h_node):
-                        continue
-                    try:
-                        path = nx.shortest_path(g, f_node, h_node)
-                    except nx.NetworkXNoPath:
-                        path = [f_node, n_node, h_node]
+        for fr in file_read_nodes:
+            for hp in http_post_nodes:
+                if nx.has_path(g, fr, hp):
+                    path = nx.shortest_path(g, fr, hp)
                     return PolicyViolation(
                         policy_name=self.name,
-                        message="Potential data exfiltration: sensitive file content flows to network output",
+                        message="Potential data exfiltration: file content flows to network output",
                         path=path,
                     )
 

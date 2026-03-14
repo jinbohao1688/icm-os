@@ -10,7 +10,7 @@ class DNSResolvePrimitive(CapabilityPrimitive):
         super().__init__(
             id="DNS_RESOLVE",
             type_signature=TypeSignature(
-                type_in=["DNSResolveInput"], type_out=["DNSResolveOutput"]
+                type_in=["text", "domain"], type_out=["ip"]
             ),
             semantic_descriptor="Resolve a domain name to an IP address.",
         )
@@ -30,7 +30,7 @@ class TCPConnectPrimitive(CapabilityPrimitive):
         super().__init__(
             id="TCP_CONNECT",
             type_signature=TypeSignature(
-                type_in=["TCPConnectInput"], type_out=["TCPConnectOutput"]
+                type_in=["ip", "text"], type_out=["connection_id"]
             ),
             semantic_descriptor="Establish a TCP connection to an IP and port.",
         )
@@ -50,7 +50,7 @@ class TLSHandshakePrimitive(CapabilityPrimitive):
         super().__init__(
             id="TLS_HANDSHAKE",
             type_signature=TypeSignature(
-                type_in=["TLSHandshakeInput"], type_out=["TLSHandshakeOutput"]
+                type_in=["connection_id"], type_out=["session_key"]
             ),
             semantic_descriptor="Perform a TLS handshake on an existing TCP connection.",
         )
@@ -69,7 +69,7 @@ class HTTPGetPrimitive(CapabilityPrimitive):
         super().__init__(
             id="HTTP_GET",
             type_signature=TypeSignature(
-                type_in=["HTTPGetInput"], type_out=["HTTPGetOutput"]
+                type_in=["session_key", "text"], type_out=["http_response", "text"]
             ),
             semantic_descriptor="Perform an HTTP GET request.",
         )
@@ -90,7 +90,8 @@ class HTTPPostPrimitive(CapabilityPrimitive):
         super().__init__(
             id="HTTP_POST",
             type_signature=TypeSignature(
-                type_in=["HTTPPostInput"], type_out=["HTTPPostOutput"]
+                type_in=["session_key", "text", "http_response", "position", "kv_result"],
+                type_out=["http_response", "text"],
             ),
             semantic_descriptor="Perform an HTTP POST request.",
         )

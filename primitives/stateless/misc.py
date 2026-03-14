@@ -10,7 +10,7 @@ class BookmarkWritePrimitive(CapabilityPrimitive):
         super().__init__(
             id="BOOKMARK_WRITE",
             type_signature=TypeSignature(
-                type_in=["BookmarkWriteInput"], type_out=["BookmarkWriteOutput"]
+                type_in=["text", "kv_result"], type_out=["bookmark_id"]
             ),
             semantic_descriptor="Write a bookmark entry.",
         )

@@ -50,7 +50,7 @@ class FileState(CapabilityPrimitive):
     def __init__(self) -> None:
         super().__init__(
             id="FILE_STATE",
-            type_signature=TypeSignature(type_in=["FileStateInput"], type_out=["FileStateOutput"]),
+            type_signature=TypeSignature(type_in=["text"], type_out=["text", "file_state_result"]),
             semantic_descriptor="Per-session virtual file state with read/write operations.",
             is_stateful=True,
         )

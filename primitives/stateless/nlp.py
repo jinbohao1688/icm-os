@@ -10,7 +10,7 @@ class NLPTranslatePrimitive(CapabilityPrimitive):
         super().__init__(
             id="NLP_TRANSLATE",
             type_signature=TypeSignature(
-                type_in=["NLPTranslateInput"], type_out=["NLPTranslateOutput"]
+                type_in=["text", "file_content"], type_out=["text", "translated_text"]
             ),
             semantic_descriptor="Translate text into a target language.",
         )
@@ -30,7 +30,7 @@ class NLPEncodePrimitive(CapabilityPrimitive):
         super().__init__(
             id="NLP_ENCODE",
             type_signature=TypeSignature(
-                type_in=["NLPEncodeInput"], type_out=["NLPEncodeOutput"]
+                type_in=["text", "file_content"], type_out=["embedding", "text"]
             ),
             semantic_descriptor="Encode text into a vector embedding.",
         )

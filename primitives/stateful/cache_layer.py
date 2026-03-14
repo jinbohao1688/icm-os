@@ -43,7 +43,7 @@ class CacheLayer(CapabilityPrimitive):
         super().__init__(
             id="CACHE_LAYER",
             type_signature=TypeSignature(
-                type_in=["CacheLayerInput"], type_out=["CacheLayerOutput"]
+                type_in=["text"], type_out=["text", "cache_result"]
             ),
             semantic_descriptor="Per-session TTL cache with get/set operations.",
             is_stateful=True,
