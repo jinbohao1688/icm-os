@@ -160,6 +160,42 @@ pytest gbt/tests/test_real_binary.py -v -s --timeout=120
 pytest tests/ gbt/tests/ -v
 ```
 
+### 交互式 CLI
+
+```bash
+python3 cli.py
+```
+
+示例交互：
+
+**Read /tmp/notes.txt and display its contents**
+```
+✓ Graph: FILE_OPEN → FILE_READ → UTF8_DECODE → WINDOW_RENDER
+✓ FILE_OPEN     → file_id: fh-xxx
+✓ FILE_READ     → bytes_read: 58
+✓ UTF8_DECODE   → text: 'Hello world...'
+✓ WINDOW_RENDER → rendered
+```
+
+**Search for 'error' in /tmp/notes.txt and show matching lines**
+```
+✓ Graph: FILE_OPEN → FILE_READ → SEARCH_INDEX → WINDOW_RENDER
+✓ SEARCH_INDEX  → matches: ['error found here', 'no error here']
+```
+
+**Translate /tmp/notes.txt to French and display it**
+```
+✓ Graph: FILE_OPEN → FILE_READ → UTF8_DECODE → NLP_TRANSLATE → WINDOW_RENDER
+✓ NLP_TRANSLATE → translated: 'Bonjour le monde...'
+```
+
+**Fetch the webpage at https://example.com and show its title**
+```
+✓ Graph: DNS_RESOLVE → TCP_CONNECT → TLS_HANDSHAKE → HTTP_GET → HTML_PARSE
+✓ HTTP_GET      → status_code: 200
+✓ HTML_PARSE    → title: 'Example Domain'
+```
+
 ---
 
 ## 已知问题与待办

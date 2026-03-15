@@ -74,7 +74,12 @@ class SearchIndexPrimitive(CapabilityPrimitive):
 
     def invoke(self, input_data: Dict[str, Any], session_id: str | None = None) -> Dict[str, Any]:
         print(f"[{self.id}] invoked with: {input_data}")
-        text = input_data.get("text") or input_data.get("content") or ""
+        text = (
+            input_data.get("text")
+            or input_data.get("content")
+            or input_data.get("file_content")
+            or ""
+        )
         if not isinstance(text, str):
             text = str(text)
         q = input_data.get("query") or input_data.get("matches") or input_data.get("content") or ""
