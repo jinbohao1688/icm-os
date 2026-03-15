@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import networkx as nx
 
@@ -109,6 +109,7 @@ class GraphExecutor:
         graph: CapabilityGraph,
         session_id: str,
         initial_context: Dict[str, Any] | None = None,
+        on_step: Optional[Callable[[str, Dict[str, Any]], None]] = None,
     ) -> Dict[str, Any]:
         results: Dict[str, Dict[str, Any]] = {}
         if initial_context:
@@ -125,6 +126,8 @@ class GraphExecutor:
 
             output = primitive.invoke(input_data, session_id)
             results[primitive.id] = output
+            if on_step:
+                on_step(primitive.id, output)
 
             # High-risk primitives: tag outputs with appropriate taint labels.
             data_id = f"{primitive.id}_out"
