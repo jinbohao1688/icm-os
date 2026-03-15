@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from statistics import mean
 from typing import List, Set
 
@@ -58,8 +59,15 @@ def run_benchmarks() -> None:
         for node_id in graph.graph.nodes():
             used_primitives.add(node_id)
 
+        # 从意图字符串中提取文件路径，注入初始上下文供起始节点（如 FILE_OPEN）使用
+        paths = re.findall(r"/\S+\.\w+", intent)
+        initial_context: dict = {}
+        if paths:
+            initial_context["path"] = paths[0]
+            initial_context["text"] = paths[0]
+
         # Execute the graph to populate taint information, then evaluate policies.
-        executor.execute(graph, session_id=session_id)
+        executor.execute(graph, session_id=session_id, initial_context=initial_context)
         violations = policy_engine.evaluate(graph, taint_tracker)
         if violations:
             policy_status = f"BLOCK ({len(violations)})"

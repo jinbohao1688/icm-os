@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+import requests
+import urllib3
+
 from core.primitive import CapabilityPrimitive, TypeSignature
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class DNSResolvePrimitive(CapabilityPrimitive):
@@ -77,12 +82,17 @@ class HTTPGetPrimitive(CapabilityPrimitive):
     def invoke(self, input_data: Dict[str, Any], session_id: str | None = None) -> Dict[str, Any]:
         print(f"[{self.id}] invoked with: {input_data}")
         url = input_data.get("url", "https://example.com")
-        headers = input_data.get("headers", {})
-        return {
-            "status_code": 200,
-            "body": f"Mock response body for {url}",
-            "headers": {"Content-Type": "text/html", **headers},
-        }
+        headers = input_data.get("headers") or {}
+        try:
+            resp = requests.get(url, headers=headers, timeout=30, verify=False)
+            body = (resp.text or "")[:2000]
+            return {
+                "status_code": resp.status_code,
+                "body": body,
+                "headers": dict(resp.headers),
+            }
+        except Exception as e:
+            return {"status_code": 0, "error": str(e)}
 
 
 class HTTPPostPrimitive(CapabilityPrimitive):
@@ -99,9 +109,13 @@ class HTTPPostPrimitive(CapabilityPrimitive):
     def invoke(self, input_data: Dict[str, Any], session_id: str | None = None) -> Dict[str, Any]:
         print(f"[{self.id}] invoked with: {input_data}")
         url = input_data.get("url", "https://example.com")
-        body = input_data.get("body", {})
-        return {
-            "status_code": 201,
-            "response": f"Mock response for POST to {url} with body keys {list(body.keys())}",
-        }
+        body = input_data.get("body")
+        try:
+            resp = requests.post(url, json=body, timeout=30, verify=False)
+            return {
+                "status_code": resp.status_code,
+                "response": resp.text[:2000] if resp.text else "",
+            }
+        except Exception as e:
+            return {"status_code": 0, "response": "", "error": str(e)}
 

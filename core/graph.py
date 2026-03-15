@@ -104,14 +104,27 @@ class GraphExecutor:
     def __init__(self, taint_tracker: TaintTracker) -> None:
         self.taint_tracker = taint_tracker
 
-    def execute(self, graph: CapabilityGraph, session_id: str) -> Dict[str, Any]:
+    def execute(
+        self,
+        graph: CapabilityGraph,
+        session_id: str,
+        initial_context: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
         results: Dict[str, Dict[str, Any]] = {}
+        if initial_context:
+            results["__init__"] = initial_context
 
         for primitive in graph.get_execution_order():
             predecessors = list(graph.graph.predecessors(primitive.id))
             input_data: Dict[str, Any] = {}
+
+            # 合并所有上游输出
             for pred_id in predecessors:
                 input_data.update(results.get(pred_id, {}))
+
+            # 如果是起始节点（无上游），注入初始上下文
+            if not predecessors and initial_context:
+                input_data.update(initial_context)
 
             output = primitive.invoke(input_data, session_id)
             results[primitive.id] = output

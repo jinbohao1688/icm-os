@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import os
 from typing import Any, Dict
+from uuid import uuid4
 
 from core.primitive import CapabilityPrimitive, TypeSignature
+
+# 模块级文件句柄存储：file_id -> 打开的文件对象
+_FILE_HANDLES: Dict[str, Any] = {}
 
 
 class FileOpenPrimitive(CapabilityPrimitive):
@@ -17,12 +22,20 @@ class FileOpenPrimitive(CapabilityPrimitive):
 
     def invoke(self, input_data: Dict[str, Any], session_id: str | None = None) -> Dict[str, Any]:
         print(f"[{self.id}] invoked with: {input_data}")
-        path = input_data.get("path", "/tmp/mock.txt")
+        path = input_data.get("path") or input_data.get("text") or input_data.get("file_path") or ""
         mode = input_data.get("mode", "r")
-        return {
-            "file_id": f"file-{hash((path, mode)) & 0xFFFF}",
-            "size": 0,
-        }
+        if not path or not os.path.exists(path):
+            return {"error": "file not found"}
+        try:
+            f = open(path, mode)
+            file_id = f"fh-{uuid4().hex[:8]}"
+            _FILE_HANDLES[file_id] = f
+            return {
+                "file_id": file_id,
+                "size": os.path.getsize(path),
+            }
+        except OSError as e:
+            return {"error": str(e)}
 
 
 class FileReadPrimitive(CapabilityPrimitive):
@@ -37,12 +50,20 @@ class FileReadPrimitive(CapabilityPrimitive):
 
     def invoke(self, input_data: Dict[str, Any], session_id: str | None = None) -> Dict[str, Any]:
         print(f"[{self.id}] invoked with: {input_data}")
-        file_id = input_data.get("file_id", "file-0")
-        content = f"Mock content from {file_id}"
-        return {
-            "content": content,
-            "bytes_read": len(content.encode("utf-8")),
-        }
+        file_id = input_data.get("file_id", "")
+        if file_id not in _FILE_HANDLES:
+            return {"content": "", "bytes_read": 0, "error": "file handle not found"}
+        f = _FILE_HANDLES[file_id]
+        try:
+            content = f.read()
+            if isinstance(content, bytes):
+                content = content.decode("utf-8", errors="replace")
+            return {
+                "content": content,
+                "bytes_read": len(content.encode("utf-8")),
+            }
+        except Exception as e:
+            return {"content": "", "bytes_read": 0, "error": str(e)}
 
 
 class FileWritePrimitive(CapabilityPrimitive):
@@ -57,10 +78,17 @@ class FileWritePrimitive(CapabilityPrimitive):
 
     def invoke(self, input_data: Dict[str, Any], session_id: str | None = None) -> Dict[str, Any]:
         print(f"[{self.id}] invoked with: {input_data}")
+        file_id = input_data.get("file_id", "")
         content = input_data.get("content", "")
-        return {
-            "bytes_written": len(str(content).encode("utf-8")),
-        }
+        if file_id not in _FILE_HANDLES:
+            return {"bytes_written": 0, "error": "file handle not found"}
+        f = _FILE_HANDLES[file_id]
+        try:
+            text = content if isinstance(content, str) else str(content)
+            f.write(text)
+            return {"bytes_written": len(text.encode("utf-8"))}
+        except Exception as e:
+            return {"bytes_written": 0, "error": str(e)}
 
 
 class FileClosePrimitive(CapabilityPrimitive):
@@ -75,7 +103,13 @@ class FileClosePrimitive(CapabilityPrimitive):
 
     def invoke(self, input_data: Dict[str, Any], session_id: str | None = None) -> Dict[str, Any]:
         print(f"[{self.id}] invoked with: {input_data}")
-        return {
-            "success": True,
-        }
+        file_id = input_data.get("file_id", "")
+        if file_id not in _FILE_HANDLES:
+            return {"success": True}
+        f = _FILE_HANDLES.pop(file_id)
+        try:
+            f.close()
+        except Exception:
+            pass
+        return {"success": True}
 
