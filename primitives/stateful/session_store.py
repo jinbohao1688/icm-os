@@ -52,7 +52,14 @@ class SessionStore(CapabilityPrimitive):
 
     def invoke(self, input_data: Dict[str, Any], session_id: Optional[str] = None) -> Dict[str, Any]:
         sid = session_id or "default"
-        operation = str(input_data.get("operation", ""))
+        operation = str(input_data.get("operation", "")).strip()
+        if not operation:
+            if "key" in input_data and "value" in input_data:
+                operation = "set"
+            elif "key" in input_data:
+                operation = "get"
+            else:
+                operation = "get"
         print(f"[STATEFUL: {self.id}] session={sid} op={operation}")
 
         path = _state_file_path(sid, self.id)
@@ -64,6 +71,8 @@ class SessionStore(CapabilityPrimitive):
         try:
             if operation == "get":
                 key = str(input_data.get("key", ""))
+                if not key:
+                    return {"value": data, "found": True}
                 found = key in data
                 return {"value": data.get(key), "found": found}
 

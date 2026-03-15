@@ -57,7 +57,14 @@ class FileState(CapabilityPrimitive):
 
     def invoke(self, input_data: Dict[str, Any], session_id: Optional[str] = None) -> Dict[str, Any]:
         sid = session_id or "default"
-        operation = str(input_data.get("operation", ""))
+        operation = str(input_data.get("operation", "")).strip()
+        if not operation:
+            if "path" in input_data and "content" in input_data:
+                operation = "write"
+            elif "path" in input_data:
+                operation = "read"
+            else:
+                operation = "read"
         print(f"[STATEFUL: {self.id}] session={sid} op={operation}")
 
         path = _state_file_path(sid, self.id)
