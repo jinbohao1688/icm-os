@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from bs4 import BeautifulSoup
+
 from core.primitive import CapabilityPrimitive, TypeSignature
 
 
@@ -17,12 +19,18 @@ class HTMLParsePrimitive(CapabilityPrimitive):
 
     def invoke(self, input_data: Dict[str, Any], session_id: str | None = None) -> Dict[str, Any]:
         print(f"[{self.id}] invoked with: {input_data}")
-        html = input_data.get("html", "")
-        title = "Mock Title"
-        return {
-            "dom_tree": {"type": "document", "children": [], "length": len(html)},
-            "title": title,
-        }
+        html = input_data.get("body") or input_data.get("text") or input_data.get("content") or ""
+        if isinstance(html, dict):
+            html = html.get("body", "") or html.get("text", "") or ""
+        if not isinstance(html, str):
+            html = str(html)
+        soup = BeautifulSoup(html, "html.parser")
+        title = soup.title.string if soup.title else ""
+        if title is None:
+            title = ""
+        text_snippet = soup.get_text(separator=" ").strip()[:500]
+        dom_tree = {"title": title, "text": text_snippet}
+        return {"dom_tree": dom_tree, "title": title}
 
 
 class CSSLayoutPrimitive(CapabilityPrimitive):

@@ -17,12 +17,10 @@ class UTF8DecodePrimitive(CapabilityPrimitive):
 
     def invoke(self, input_data: Dict[str, Any], session_id: str | None = None) -> Dict[str, Any]:
         print(f"[{self.id}] invoked with: {input_data}")
-        raw_bytes = input_data.get("raw_bytes", "")
-        text = raw_bytes  # mock: treat as already-decoded
-        return {
-            "text": text,
-            "encoding": "utf-8",
-        }
+        raw = input_data.get("content") or input_data.get("body") or input_data.get("raw_bytes") or ""
+        if not isinstance(raw, str):
+            raw = raw.decode("utf-8", errors="replace") if isinstance(raw, bytes) else str(raw)
+        return {"text": raw, "encoding": "utf-8"}
 
 
 class TextLayoutPrimitive(CapabilityPrimitive):
@@ -76,19 +74,18 @@ class SearchIndexPrimitive(CapabilityPrimitive):
 
     def invoke(self, input_data: Dict[str, Any], session_id: str | None = None) -> Dict[str, Any]:
         print(f"[{self.id}] invoked with: {input_data}")
-        text = input_data.get("text", "")
-        query = input_data.get("query", "")
-        matches: List[int] = []
+        text = input_data.get("text") or input_data.get("content") or ""
+        if not isinstance(text, str):
+            text = str(text)
+        q = input_data.get("query") or input_data.get("matches") or input_data.get("content") or ""
+        if isinstance(q, list) and q:
+            query = str(q[0]) if q else ""
+        else:
+            query = str(q) if q else ""
+        lines = text.split("\n")
         if query:
-            start = 0
-            while True:
-                idx = text.find(query, start)
-                if idx == -1:
-                    break
-                matches.append(idx)
-                start = idx + len(query)
-        return {
-            "matches": matches,
-            "count": len(matches),
-        }
+            matches = [line for line in lines if query.lower() in line.lower()]
+        else:
+            matches = [line for line in lines if line.strip()]
+        return {"matches": matches, "count": len(matches)}
 

@@ -59,12 +59,16 @@ def run_benchmarks() -> None:
         for node_id in graph.graph.nodes():
             used_primitives.add(node_id)
 
-        # 从意图字符串中提取文件路径，注入初始上下文供起始节点（如 FILE_OPEN）使用
+        # 从意图字符串中提取文件路径与搜索词，注入初始上下文
         paths = re.findall(r"/\S+\.\w+", intent)
         initial_context: dict = {}
         if paths:
             initial_context["path"] = paths[0]
             initial_context["text"] = paths[0]
+        # 提取 "search for '...'" 或 'search for "..."' 中的查询词，供 SEARCH_INDEX 使用
+        search_match = re.search(r"search\s+for\s+['\"]([^'\"]+)['\"]", intent, re.I)
+        if search_match:
+            initial_context["query"] = search_match.group(1)
 
         # Execute the graph to populate taint information, then evaluate policies.
         executor.execute(graph, session_id=session_id, initial_context=initial_context)

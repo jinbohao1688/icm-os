@@ -100,7 +100,7 @@ class HTTPPostPrimitive(CapabilityPrimitive):
         super().__init__(
             id="HTTP_POST",
             type_signature=TypeSignature(
-                type_in=["session_key", "text", "http_response", "position", "kv_result"],
+                type_in=["session_key", "text", "http_response", "dom_tree", "kv_result", "position"],
                 type_out=["http_response", "text"],
             ),
             semantic_descriptor="Perform an HTTP POST request.",

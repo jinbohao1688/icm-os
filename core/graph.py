@@ -116,15 +116,12 @@ class GraphExecutor:
 
         for primitive in graph.get_execution_order():
             predecessors = list(graph.graph.predecessors(primitive.id))
-            input_data: Dict[str, Any] = {}
+            # 先以初始上下文为底，再被上游输出覆盖，这样起始节点有 path/query，后续节点也能拿到 query 等
+            input_data: Dict[str, Any] = dict(initial_context) if initial_context else {}
 
-            # 合并所有上游输出
+            # 合并所有上游输出（覆盖同名字段）
             for pred_id in predecessors:
                 input_data.update(results.get(pred_id, {}))
-
-            # 如果是起始节点（无上游），注入初始上下文
-            if not predecessors and initial_context:
-                input_data.update(initial_context)
 
             output = primitive.invoke(input_data, session_id)
             results[primitive.id] = output
