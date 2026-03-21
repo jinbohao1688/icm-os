@@ -127,6 +127,10 @@ def main() -> None:
         registry = build_default_registry()
         try:
             decomposer = IntentDecomposer(registry=registry)
+            # 启动时加载所有缓存的动态原语
+            from ams.dynamic_gen import DynamicPrimitiveGenerator
+            gen = DynamicPrimitiveGenerator(registry)
+            gen.load_all_cached()
         except Exception as e:
             print(f"[ICM-OS] CDM unavailable: {e}", file=sys.stderr)
         taint_tracker = TaintTracker()
