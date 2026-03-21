@@ -1,0 +1,28 @@
+#!/bin/sh
+# ICM-OS init (PID 1): mount minimal VFS, then start ICM-OS shell or fallback to sh.
+# Runs in initramfs root.
+
+mount -t proc none /proc  || { echo "init: mount proc failed"; }
+mount -t sysfs none /sys   || { echo "init: mount sys failed"; }
+mount -t devtmpfs none /dev || { echo "init: mount dev failed"; }
+
+# Ensure console
+mkdir -p /dev
+[ -c /dev/console ] || mknod -m 622 /dev/console c 5 1
+[ -c /dev/ttyS0 ]  || mknod -m 622 /dev/ttyS0 c 4 64
+[ -c /dev/tty ]    || mknod -m 622 /dev/tty c 5 0
+
+# Optional: set PATH for busybox
+export PATH=/bin:/sbin:/usr/bin
+
+# Prefer ICM-OS intent shell if Python and runtime exist
+if [ -x /icm-os/icm_shell.py ] || [ -f /icm-os/icm_shell.py ]; then
+    if command -v python3 >/dev/null 2>&1; then
+        export PYTHONPATH=/icm-os:/icm-os/deps
+        [ -d /usr/lib ] && export LD_LIBRARY_PATH=/usr/lib
+        cd /icm-os && exec python3 icm_shell.py
+    fi
+fi
+
+# Fallback: busybox shell
+exec /bin/sh
