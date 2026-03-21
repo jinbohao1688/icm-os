@@ -177,3 +177,49 @@ class IntentDecomposer:
         # Should not reach here, but keep for safety.
         raise DecompositionError(last_error or "Unknown decomposition failure")
 
+    def decompose_with_dynamic(
+        self,
+        intent: str,
+        principal: str = "default",
+        max_retries: int = 3,
+    ) -> "CapabilityGraph":
+        """
+        先尝试正常分解，如果图中有未知原语则动态生成。
+        """
+        from ams.dynamic_gen import DynamicPrimitiveGenerator
+        gen = DynamicPrimitiveGenerator(self.registry)
+
+        # 让 AMS 返回所需原语列表（含可能不存在的）
+        descriptors = self.registry.get_all_descriptors()
+        system_prompt = self._build_system_prompt(descriptors)
+        system_prompt += "\n如果没有合适的原语，可以提出新的原语ID（大写下划线格式），系统会自动生成。"
+
+        user_prompt = self._build_user_prompt(intent, None)
+        response_text = self._call_model(system_prompt, user_prompt)
+
+        try:
+            graph_dict = self._parse_response(response_text)
+        except Exception as e:
+            raise DecompositionError(str(e))
+
+        # 检查哪些原语不存在，动态生成
+        nodes = graph_dict.get("nodes", [])
+        for node in nodes:
+            pid = node if isinstance(node, str) else node.get("id")
+            try:
+                self.registry.get(pid)
+            except KeyError:
+                # 动态生成这个原语
+                gen.generate(pid, intent)
+
+        # 现在所有原语都存在了，正常构建图
+        graph = CapabilityGraph.from_dict(graph_dict, registry=self.registry)
+        graph.params = graph_dict.get("params", {})
+        validation = self._validate_graph(graph, principal, self.registry)
+        if validation.passed:
+            node_count = graph.graph.number_of_nodes()
+            edge_count = graph.graph.number_of_edges()
+            print(f"[AMS] Graph validated: {node_count} nodes, {edge_count} edges")
+            return graph
+        raise DecompositionError(f"Validation failed after dynamic generation")
+

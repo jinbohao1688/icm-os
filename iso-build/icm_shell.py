@@ -154,7 +154,7 @@ def main() -> None:
 
         if decomposer and executor and not line.startswith("!"):
             try:
-                graph = decomposer.decompose(intent=line, principal=session_id)
+                graph = decomposer.decompose_with_dynamic(intent=line, principal=session_id)
                 order = [p.id for p in graph.get_execution_order()]
                 print(f"Graph: {' -> '.join(order)}")
 
