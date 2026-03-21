@@ -22,9 +22,14 @@ class DNSResolvePrimitive(CapabilityPrimitive):
 
     def invoke(self, input_data: Dict[str, Any], session_id: str | None = None) -> Dict[str, Any]:
         print(f"[{self.id}] invoked with: {input_data}")
+        import socket
         domain = input_data.get("domain", "example.com")
+        try:
+            ip = socket.gethostbyname(domain)
+        except Exception:
+            ip = "0.0.0.0"
         return {
-            "ip": "93.184.216.34",
+            "ip": ip,
             "ttl": 300,
             "domain": domain,
         }
