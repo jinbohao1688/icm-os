@@ -105,8 +105,8 @@ def _extract_context(intent: str) -> Dict[str, Any]:
     if cn_match:
         ctx['text'] = cn_match.group(1).strip()
 
-    # 写文件内容提取："write X to file Y"
-    write_match = re.search(r'write\s+["'](.+?)["']\s+to', line, re.I)
+    # 写文件内容提取：write X to file Y
+    write_match = re.search(r'write\s+["\'](.+?)["\']\s+to', line, re.I)
     if write_match:
         ctx['content'] = write_match.group(1).strip()
         ctx['mode'] = 'w'
@@ -158,7 +158,11 @@ def main() -> None:
                 order = [p.id for p in graph.get_execution_order()]
                 print(f"Graph: {' -> '.join(order)}")
 
-                initial_context = _extract_context(line)
+                # 优先用 AMS 提取的参数，正则提取作为补充
+                ams_params = getattr(graph, 'params', {}) or {}
+                regex_ctx = _extract_context(line)
+                # AMS 参数优先，正则补充缺失字段
+                initial_context = {**regex_ctx, **ams_params}
 
                 def on_step(primitive_id: str, output: Dict[str, Any]) -> None:
                     print(f"  {primitive_id}: {_format_output(primitive_id, output)}")

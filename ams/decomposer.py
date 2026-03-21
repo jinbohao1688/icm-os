@@ -57,8 +57,13 @@ class IntentDecomposer:
         lines.append("")
         lines.append(
             "你必须返回严格的 JSON，格式为："
-            '{"nodes": ["ID1", "ID2", ...], "edges": [["FROM", "TO"], ...]}'
+            '{"nodes": ["ID1", "ID2", ...], "edges": [["FROM", "TO"], ...], "params": {"key": "value"}}'
         )
+        lines.append("params 字段用于提取意图中的关键参数，例如：")
+        lines.append("- 翻译意图：{\"text\": \"要翻译的内容\", \"target_lang\": \"目标语言(English/Chinese/Japanese等)\"}")
+        lines.append("- 写文件意图：{\"content\": \"要写入的内容\", \"path\": \"/文件路径\"}")
+        lines.append("- 抓取意图：{\"url\": \"完整URL\", \"domain\": \"域名\"}")
+        lines.append("params 中的值直接从用户意图中提取，不要编造。如果没有相关参数则留空 {}。")
         lines.append("要求：")
         lines.append("- 图必须是有向无环图（DAG）。")
         lines.append("- nodes 中的 ID 必须全部来自上述原语列表，不得创造新的原语。")
@@ -159,6 +164,8 @@ class IntentDecomposer:
                 print(
                     f"[AMS] Graph validated: {node_count} nodes, {edge_count} edges"
                 )
+                # 把 AMS 提取的参数附加到 graph 上
+                graph.params = graph_dict.get("params", {})
                 return graph
 
             messages = "; ".join(validation.failed_checks)
