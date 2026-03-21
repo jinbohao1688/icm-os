@@ -96,6 +96,11 @@ def _extract_context(intent: str) -> Dict[str, Any]:
     if trans_match:
         ctx["text"] = trans_match.group(1).strip()
 
+    # 中文翻译模式：把X翻译成Y / 将X翻译成Y
+    cn_match = re.search(r'[把将](.+?)[翻译转]成', line)
+    if cn_match:
+        ctx['text'] = cn_match.group(1).strip()
+
     return ctx
 
 
