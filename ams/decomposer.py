@@ -192,7 +192,15 @@ class IntentDecomposer:
         # 让 AMS 返回所需原语列表（含可能不存在的）
         descriptors = self.registry.get_all_descriptors()
         system_prompt = self._build_system_prompt(descriptors)
-        system_prompt += "\n如果没有合适的原语，可以提出新的原语ID（大写下划线格式），系统会自动生成。"
+        system_prompt += """
+\n\n【动态原语模式】
+你现在处于动态原语模式。除了使用已有原语外，你可以并且应该在需要时创建新原语。
+规则：
+1. 如果现有原语能精确完成任务，使用它
+2. 如果现有原语只是勉强凑合（如用SHA256来生成UUID），必须创建新原语
+3. 新原语命名：大写+下划线，如 UUID_GENERATE、MD5_HASH、RANDOM_PASSWORD
+4. 对于"生成随机X"、"计算X哈希"、"格式转换"等任务，优先创建专用新原语
+"""
 
         user_prompt = self._build_user_prompt(intent, None)
         response_text = self._call_model(system_prompt, user_prompt)
