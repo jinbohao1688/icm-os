@@ -8,3 +8,10 @@ __pycache__/
 ~/.icm-os/
 *.tar
 *.log
+iso-build/work/
+iso-build/icm-os.iso
+venv/
+__pycache__/
+*.pyc
+*.iso
+*.img
