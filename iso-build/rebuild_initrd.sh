@@ -60,3 +60,38 @@ echo "[ICM-OS] 打包..."
 cd $INITRD_DIR
 find . | cpio -o -H newc | gzip > $INITRD_OUT
 echo "[ICM-OS] 完成！$(du -sh $INITRD_OUT | cut -f1)"
+
+# 重新编译 init（自动网络+存储）
+cat > /tmp/init.c << 'CEOF'
+#include <unistd.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#include <stdio.h>
+int main() {
+    mount("proc","/proc","proc",0,NULL);
+    mount("sysfs","/sys","sysfs",0,NULL);
+    mount("devtmpfs","/dev","devtmpfs",0,NULL);
+    mount("tmpfs","/data","tmpfs",0,"size=64m");
+    mkdir("/data/config",0755);
+    mkdir("/data/notes",0755);
+    mkdir("/data/history",0755);
+    mkdir("/etc",0755);
+    FILE *f=fopen("/etc/resolv.conf","w");
+    if(f){fprintf(f,"nameserver 8.8.8.8\n");fclose(f);}
+    printf("  [storage] /data ready\n");
+    system("/bin/ip link set eth0 up 2>/dev/null");
+    system("/bin/ip addr add 10.0.2.15/24 dev eth0 2>/dev/null");
+    system("/bin/ip route add default via 10.0.2.2 2>/dev/null");
+    printf("  [network] eth0 ready (10.0.2.15)\n");
+    printf("\n  ICM-OS v0.1\n\n");
+    char *envp[]={"PATH=/bin:/sbin:/usr/bin","PYTHONPATH=/icm-os:/icm-os/deps","HOME=/root","TERM=linux","LD_LIBRARY_PATH=/lib/x86_64-linux-gnu:/lib64",NULL};
+    while(1){
+        char *py[]={"/usr/bin/python3","/icm-os/icm_shell.py",NULL};
+        execve("/usr/bin/python3",py,envp);
+        char *sh[]={"/bin/sh",NULL};
+        execve("/bin/sh",sh,envp);
+        sleep(1);
+    }
+}
+CEOF
+gcc -static -o $INITRD_DIR/init /tmp/init.c
