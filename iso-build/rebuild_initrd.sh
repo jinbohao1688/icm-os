@@ -56,6 +56,14 @@ int main() {
 EOF
 gcc -static -o $INITRD_DIR/init /tmp/init.c
 
+# 复制已缓存的动态原语
+PRIMITIVE_CACHE=~/.icm-os/primitives
+if [ -d "$PRIMITIVE_CACHE" ] && [ "$(ls -A $PRIMITIVE_CACHE)" ]; then
+    mkdir -p $INITRD_DIR/data/primitives
+    cp $PRIMITIVE_CACHE/*.py $INITRD_DIR/data/primitives/ 2>/dev/null
+    echo "[ICM-OS] Bundled $(ls $PRIMITIVE_CACHE/*.py 2>/dev/null | wc -l) cached primitives"
+fi
+
 echo "[ICM-OS] 打包..."
 cd $INITRD_DIR
 find . | cpio -o -H newc | gzip > $INITRD_OUT
