@@ -24,8 +24,12 @@ class FileOpenPrimitive(CapabilityPrimitive):
         print(f"[{self.id}] invoked with: {input_data}")
         path = input_data.get("path") or input_data.get("text") or input_data.get("file_path") or ""
         mode = input_data.get("mode", "r")
-        if not path or not os.path.exists(path):
-            return {"error": "file not found"}
+        # 如果文件不存在且是写模式，自动创建
+        if not path:
+            return {"error": "no path provided"}
+        if not os.path.exists(path) and mode == "r":
+            # 尝试写模式（write intent）
+            mode = "w"
         try:
             f = open(path, mode)
             file_id = f"fh-{uuid4().hex[:8]}"
@@ -79,7 +83,7 @@ class FileWritePrimitive(CapabilityPrimitive):
     def invoke(self, input_data: Dict[str, Any], session_id: str | None = None) -> Dict[str, Any]:
         print(f"[{self.id}] invoked with: {input_data}")
         file_id = input_data.get("file_id", "")
-        content = input_data.get("content", "")
+        content = input_data.get("content") or input_data.get("write_content") or input_data.get("body") or ""
         if file_id not in _FILE_HANDLES:
             return {"bytes_written": 0, "error": "file handle not found"}
         f = _FILE_HANDLES[file_id]

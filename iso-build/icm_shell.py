@@ -105,6 +105,12 @@ def _extract_context(intent: str) -> Dict[str, Any]:
     if cn_match:
         ctx['text'] = cn_match.group(1).strip()
 
+    # 写文件内容提取："write X to file Y"
+    write_match = re.search(r'write\s+["'](.+?)["']\s+to', line, re.I)
+    if write_match:
+        ctx['content'] = write_match.group(1).strip()
+        ctx['mode'] = 'w'
+
     return ctx
 
 
