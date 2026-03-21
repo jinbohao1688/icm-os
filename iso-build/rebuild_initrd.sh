@@ -32,7 +32,7 @@ cp /lib64/ld-linux-x86-64.so.2 $INITRD_DIR/lib64/
 cp -r $ICMOS_DIR/ams $ICMOS_DIR/core $ICMOS_DIR/primitives $ICMOS_DIR/security $ICMOS_DIR/gbt $INITRD_DIR/icm-os/
 cp $ICMOS_DIR/iso-build/icm_shell.py $INITRD_DIR/icm-os/
 cp $ICMOS_DIR/.env $INITRD_DIR/icm-os/ 2>/dev/null
-pip3 install --target=$INITRD_DIR/icm-os/deps networkx openai requests python-dotenv 2>&1 | tail -2
+pip3 install --target=$INITRD_DIR/icm-os/deps networkx openai requests python-dotenv beautifulsoup4 2>&1 | tail -2
 echo "nameserver 8.8.8.8" > $INITRD_DIR/etc/resolv.conf
 
 cat > /tmp/init.c << 'EOF'
