@@ -2,7 +2,7 @@
 
 **Intent-Centric Meta-Operating System** — A research prototype for AI-driven capability decomposition and generative binary translation.
 
-> 论文全文见作者个人网站：[jinac.vxni.ink](https://jinac.vxni.ink) · [jinac.pages.dev](https://jinac.pages.dev)
+> 论文全文见作者个人网站： [jinac.pages.dev](https://jinac.pages.dev)
 
 ---
 
