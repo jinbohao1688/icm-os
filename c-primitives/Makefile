@@ -8,6 +8,8 @@ EXEC_SHELL = icm_c_shell_test
 EXEC_DNS = icm_c_dns_test
 EXEC_HTTP = icm_c_http_test
 ICM_SHELL = icm_shell
+# Static link for initramfs (no shared libc in minimal root); QEMU/ISO 可直接运行
+ICM_SHELL_LDFLAGS = -static
 
 .PHONY: test test-file test-shell test-dns test-http clean all run
 
@@ -27,7 +29,7 @@ $(EXEC_HTTP): http_get.c http_get_test.c http_get.h file_primitive.h
 
 $(ICM_SHELL): icm_shell.c file_primitive.c shell_exec.c dns_resolve.c http_get.c \
 		file_primitive.h shell_exec.h dns_resolve.h http_get.h
-	$(CC) $(CFLAGS) -o $(ICM_SHELL) icm_shell.c file_primitive.c shell_exec.c \
+	$(CC) $(CFLAGS) $(ICM_SHELL_LDFLAGS) -o $(ICM_SHELL) icm_shell.c file_primitive.c shell_exec.c \
 		dns_resolve.c http_get.c
 
 run: $(ICM_SHELL)
