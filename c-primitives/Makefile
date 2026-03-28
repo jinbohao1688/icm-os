@@ -7,10 +7,11 @@ EXEC_FILE = icm_c_file_test
 EXEC_SHELL = icm_c_shell_test
 EXEC_DNS = icm_c_dns_test
 EXEC_HTTP = icm_c_http_test
+ICM_SHELL = icm_shell
 
-.PHONY: test test-file test-shell test-dns test-http clean all
+.PHONY: test test-file test-shell test-dns test-http clean all run
 
-all: $(EXEC_FILE) $(EXEC_SHELL) $(EXEC_DNS) $(EXEC_HTTP)
+all: $(EXEC_FILE) $(EXEC_SHELL) $(EXEC_DNS) $(EXEC_HTTP) $(ICM_SHELL)
 
 $(EXEC_FILE): file_primitive.c file_primitive_test.c file_primitive.h
 	$(CC) $(CFLAGS) -o $(EXEC_FILE) file_primitive.c file_primitive_test.c
@@ -23,6 +24,14 @@ $(EXEC_DNS): dns_resolve.c dns_resolve_test.c dns_resolve.h file_primitive.h
 
 $(EXEC_HTTP): http_get.c http_get_test.c http_get.h file_primitive.h
 	$(CC) $(CFLAGS) -o $(EXEC_HTTP) http_get.c http_get_test.c
+
+$(ICM_SHELL): icm_shell.c file_primitive.c shell_exec.c dns_resolve.c http_get.c \
+		file_primitive.h shell_exec.h dns_resolve.h http_get.h
+	$(CC) $(CFLAGS) -o $(ICM_SHELL) icm_shell.c file_primitive.c shell_exec.c \
+		dns_resolve.c http_get.c
+
+run: $(ICM_SHELL)
+	./$(ICM_SHELL)
 
 test-file: $(EXEC_FILE)
 	./$(EXEC_FILE)
@@ -43,4 +52,4 @@ test: $(EXEC_FILE) $(EXEC_SHELL) $(EXEC_DNS) $(EXEC_HTTP)
 	./$(EXEC_HTTP)
 
 clean:
-	rm -f $(EXEC_FILE) $(EXEC_SHELL) $(EXEC_DNS) $(EXEC_HTTP)
+	rm -f $(EXEC_FILE) $(EXEC_SHELL) $(EXEC_DNS) $(EXEC_HTTP) $(ICM_SHELL)
