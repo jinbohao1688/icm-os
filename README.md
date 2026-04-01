@@ -13,15 +13,15 @@
 ## 📖 目录
 
 - [概述](#概述)
-- [当前状态](#当前状态v01-·-202603)
-- [仓库结构](#仓库结构节选)
+- [当前状态](#当前状态-v01-·-202603)
+- [仓库结构](#仓库结构-节选)
 - [架构概览](#架构概览)
 - [快速开始](#快速开始)
-- [演示片段](#演示片段概念)
-- [预定义原语](#预定义原语python-侧-·-节选)
-- [Env Engine](#env-engineai-驱动的环境管理)
+- [演示片段](#演示片段-概念)
+- [预定义原语](#预定义原语-python-侧-节选)
+- [Env Engine](#env-engine-ai-驱动的环境管理)
 - [里程碑](#里程碑)
-- [未来愿景](#未来愿景节选)
+- [未来愿景](#未来愿景-节选)
 - [技术选型](#技术选型)
 - [参考论文](#参考论文)
 - [License](#license)
@@ -34,10 +34,10 @@ ICM-OS 是一个 **意图驱动** 的元操作系统：用自然语言描述意�
 
 **核心方向：**
 
-1. **无限原语扩展**：缺少原语时 AI 生成并动态加载。
-2. **任意格式执行**：支持 Python、Shell、Lua、自定义 DSL 等。
-3. **任意语言意图**：AMS 映射多语言意图为原语执行。
-4. **AI 驱动环境管理**：安全应用环境配置（Env Patch），支持会话隔离和回滚。
+1. **无限原语扩展**：缺少原语时 AI 生成并动态加载。  
+2. **任意格式执行**：支持 Python、Shell、Lua、自定义 DSL 等。  
+3. **任意语言意图**：AMS 映射多语言意图为原语执行。  
+4. **AI 驱动环境管理**：安全应用环境配置（Env Patch），支持会话隔离和回滚。  
 
 ---
 
@@ -75,33 +75,55 @@ ICM-OS 是一个 **意图驱动** 的元操作系统：用自然语言描述意�
 <details>
 <summary>点击展开架构图</summary>
 
-```text
-自然语言意图（任意语言）
-↓
-┌───────────────────────────────┐
-│ AMS（意图分解，DeepSeek API） │
-└───────────────────────────────┘
-↓
-能力图（Python） / 单原语路由（C shell）
-↓
-┌───────────────────────────────┐
-│ 原语执行                     │
-└───────────────────────────────┘
-↓
-┌───────────────────────────────┐
-│ Env Engine（环境管理）        │
-└───────────────────────────────┘
-↓
+自然语言意图（任意语言）  
+↓  
+AMS（意图分解，DeepSeek API）  
+- Python: IntentDecomposer（cli/icm）  
+- C: ams.c → curl POST /chat/completions  
+
+↓  
+能力图（Python） / 单原语路由（C shell）  
+
+↓  
+原语执行  
+- Python: GraphExecutor + 注册表原语  
+- C: 按 primitive_id 调 FILE/DNS/HTTP/...  
+
+↓  
+Env Engine（环境管理）  
+- 接收 Env Patch → 更新 Session 环境  
+- 注入到进程 → 可选持久化（用户确认）  
+
+↓  
 执行结果
 
 </details>
+
 ---
 
-快速开始
+## ISO / QEMU 栈（典型）
 
 <details>
-<summary>点击展开安装与运行</summary>配置
+<summary>点击展开 ISO/QEMU 栈</summary>
 
+C icm_shell（静态，可选） / Python icm_shell.py（回退）  
+↓  
+Linux 6.1 + busybox + init（/data、网络、resolv）  
+↓  
+QEMU x86-64 / 裸机
+
+</details>
+
+---
+
+## 快速开始
+
+<details>
+<summary>点击展开安装与运行</summary>
+
+### 配置
+
+```bash
 git clone https://github.com/jinbohao1688/icm-os.git
 cd icm-os
 echo "DEEPSEEK_API_KEY=your_key_here" > .env
@@ -132,6 +154,10 @@ qemu-system-x86_64 \
   -append "console=ttyS0,115200n8 rdinit=/init" \
   -m 1024M -nographic \
   -netdev user,id=net0 -device e1000,netdev=net0
+
+重建 initramfs
+
+bash iso-build/rebuild_initrd.sh
 
 </details>
 ---
@@ -263,5 +289,13 @@ MIT License
 > ICM-OS 为研究原型，不用于生产环境关键业务。
 
 
+
+---
+
+✅ **特点：**
+
+- 所有“架构概览”、“ISO/QEMU 栈”、“快速开始”、“Env Engine”都使用 `<details>` 折叠显示。  
+- 原本用 ` ```text ``` ` 的流程图改成纯文本缩进+箭头，GitHub 上不会被渲染成单一巨大代码块。  
+- 表格美化、徽章齐全，README 首页一目了然。  
 
 ---
