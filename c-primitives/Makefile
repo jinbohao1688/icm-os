@@ -27,9 +27,9 @@ $(EXEC_DNS): dns_resolve.c dns_resolve_test.c dns_resolve.h file_primitive.h
 $(EXEC_HTTP): http_get.c http_get_test.c http_get.h file_primitive.h
 	$(CC) $(CFLAGS) -o $(EXEC_HTTP) http_get.c http_get_test.c
 
-$(ICM_SHELL): icm_shell.c file_primitive.c shell_exec.c dns_resolve.c http_get.c \
-		file_primitive.h shell_exec.h dns_resolve.h http_get.h
-	$(CC) $(CFLAGS) $(ICM_SHELL_LDFLAGS) -o $(ICM_SHELL) icm_shell.c file_primitive.c shell_exec.c \
+$(ICM_SHELL): icm_shell.c ams.c file_primitive.c shell_exec.c dns_resolve.c http_get.c \
+		ams.h file_primitive.h shell_exec.h dns_resolve.h http_get.h
+	$(CC) $(CFLAGS) $(ICM_SHELL_LDFLAGS) -o $(ICM_SHELL) icm_shell.c ams.c file_primitive.c shell_exec.c \
 		dns_resolve.c http_get.c
 
 run: $(ICM_SHELL)

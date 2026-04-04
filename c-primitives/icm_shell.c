@@ -1,20 +1,25 @@
 /*
- * ICM-OS C shell — intent routing via simple substring / token rules (no AI).
+ * ICM-OS C shell — keyword intents + optional AMS (DeepSeek) decomposition.
  */
 
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #endif
 
+#include "ams.h"
 #include "dns_resolve.h"
 #include "file_primitive.h"
 #include "http_get.h"
 #include "shell_exec.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #define LINE_MAX 8192
+
+static char g_deepseek_key[512];
 
 static void chomp_line(char *s) {
     size_t n;
@@ -232,6 +237,122 @@ static void handle_http(char *line) {
     }
 }
 
+static const char *ams_get_param(const AmsResult *a, const char *key) {
+    int i;
+
+    if (a == NULL || key == NULL) {
+        return "";
+    }
+    for (i = 0; i < a->param_count; i++) {
+        if (strcmp(a->param_keys[i], key) == 0) {
+            return a->params[i];
+        }
+    }
+    return "";
+}
+
+static void handle_ams_primitive(const AmsResult *ar) {
+    IcmResult ir;
+    DnsResult dr;
+    HttpResult hr;
+    const char *p;
+    const char *c;
+
+    if (strcasecmp(ar->primitive_id, "DNS_RESOLVE") == 0) {
+        p = ams_get_param(ar, "domain");
+        if (p[0] == '\0') {
+            printf("[AMS] missing domain\n");
+            return;
+        }
+        icm_dns_resolve(p, &dr);
+        if (dr.status != ICM_OK) {
+            printf("[AMS] dns: %s\n", dr.error);
+            return;
+        }
+        printf("[AMS] %s -> %s\n", p, dr.ip);
+        return;
+    }
+    if (strcasecmp(ar->primitive_id, "HTTP_GET") == 0) {
+        p = ams_get_param(ar, "url");
+        if (p[0] == '\0') {
+            printf("[AMS] missing url\n");
+            return;
+        }
+        icm_http_get(p, 30, &hr);
+        if (hr.status != ICM_OK) {
+            printf("[AMS] http: %s\n", hr.error);
+            return;
+        }
+        printf("[AMS] HTTP %d\n", hr.status_code);
+        if (hr.body_size > 0U) {
+            size_t n = hr.body_size > 500U ? 500U : hr.body_size;
+            (void)fwrite(hr.body, 1U, n, stdout);
+            printf("\n");
+        }
+        return;
+    }
+    if (strcasecmp(ar->primitive_id, "FILE_READ") == 0) {
+        p = ams_get_param(ar, "path");
+        if (p[0] == '\0') {
+            printf("[AMS] missing path\n");
+            return;
+        }
+        icm_file_read(p, &ir);
+        if (ir.status != ICM_OK) {
+            printf("[AMS] read: %s\n", ir.error);
+            return;
+        }
+        (void)fwrite(ir.data, 1U, ir.size, stdout);
+        printf("\n");
+        return;
+    }
+    if (strcasecmp(ar->primitive_id, "FILE_WRITE") == 0) {
+        p = ams_get_param(ar, "path");
+        c = ams_get_param(ar, "content");
+        if (p[0] == '\0') {
+            printf("[AMS] missing path\n");
+            return;
+        }
+        if (c[0] == '\0') {
+            printf("[AMS] missing content\n");
+            return;
+        }
+        if (icm_file_write(p, c, "w") != ICM_OK) {
+            printf("[AMS] write failed\n");
+            return;
+        }
+        printf("[AMS] wrote %s\n", p);
+        return;
+    }
+    if (strcasecmp(ar->primitive_id, "SHELL_EXEC") == 0) {
+        p = ams_get_param(ar, "command");
+        if (p[0] == '\0') {
+            printf("[AMS] missing command\n");
+            return;
+        }
+        icm_shell_exec(p, 120, &ir);
+        print_icm_result(&ir, "ams-exec");
+        return;
+    }
+    if (strcasecmp(ar->primitive_id, "FILE_LIST") == 0) {
+        p = ams_get_param(ar, "path");
+        if (p[0] == '\0') {
+            p = ".";
+        }
+        icm_file_list(p, &ir);
+        if (ir.status != ICM_OK) {
+            printf("[AMS] list: %s\n", ir.error);
+            return;
+        }
+        printf("%s", ir.data);
+        if (ir.size == 0U || ir.data[ir.size - 1U] != '\n') {
+            printf("\n");
+        }
+        return;
+    }
+    printf("[AMS] unknown primitive: %s\n", ar->primitive_id);
+}
+
 static void handle_bang(const char *line) {
     IcmResult r;
     const char *cmd;
@@ -304,14 +425,40 @@ static int dispatch(char *line) {
         return 0;
     }
 
+    if (g_deepseek_key[0] != '\0') {
+        AmsResult ar;
+        icm_ams_decompose(line, g_deepseek_key, &ar);
+        if (ar.status == ICM_OK && ar.primitive_id[0] != '\0') {
+            printf("[AMS] Graph: %s\n", ar.primitive_id);
+            handle_ams_primitive(&ar);
+            return 0;
+        }
+        if (ar.error[0] != '\0') {
+            printf("[AMS] %s\n", ar.error);
+        } else {
+            printf("[ICM] Unknown intent: %s\n", line);
+        }
+        return 0;
+    }
+
     printf("[ICM] Unknown intent: %s\n", line);
     return 0;
 }
 
 int main(void) {
     char line[LINE_MAX];
+    const char *envk;
+
+    g_deepseek_key[0] = '\0';
+    envk = getenv("DEEPSEEK_API_KEY");
+    if (envk != NULL && envk[0] != '\0') {
+        (void)snprintf(g_deepseek_key, sizeof g_deepseek_key, "%s", envk);
+    }
 
     print_banner();
+    if (g_deepseek_key[0] != '\0') {
+        printf(" AMS: DeepSeek decomposition enabled.\n\n");
+    }
     for (;;) {
         (void)printf("icm> ");
         (void)fflush(stdout);
