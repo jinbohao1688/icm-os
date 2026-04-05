@@ -1,14 +1,14 @@
 # ICM-OS
 
-**Intent-Centric Meta-Operating System** — A research prototype for AI-driven capability decomposition and generative binary translation.
+**Intent-Centric Meta-Operating System** — 意图驱动的元操作系统，AI 原生设计，支持自研内核。
 
-> 论文全文见作者个人网站：[jinac.vxni.ink](https://jinac.vxni.ink) · [jinac.pages.dev](https://jinac.pages.dev)
+> 论文全文：[jinac.vxni.ink](https://jinac.vxni.ink) · [jinac.pages.dev](https://jinac.pages.dev)
 
 ---
 
 ## 概述
 
-ICM-OS 是一个意图驱动的元操作系统。用任意语言表达意图，系统自动执行。
+ICM-OS 是一个意图驱动的元操作系统。用任意语言表达意图，系统自动分解并执行。
 
 **四大核心能力：**
 
@@ -21,28 +21,28 @@ ICM-OS 是一个意图驱动的元操作系统。用任意语言表达意图，�
 **3. 任意语言意图**
 中文、英文、德文、日文……任何语言表达意图，AMS 直接理解并提取参数执行。
 
-**4. C 原语层（新）**
-核心原语用纯 C99 重写，零依赖，直接系统调用，C 版 shell 可在裸机上独立运行。
+**4. 自研内核（新）**
+ICM-OS C Shell 现已成功运行在 Synapse Kernel（自研 i386 内核）上，完全脱离 Linux。
 
 ---
 
-## 当前状态 (v0.2 · 2026.03)
+## 当前状态 (v0.3 · 2026.04)
 
 | 组件 | 状态 | 说明 |
 |------|------|------|
-| 内核 | ✅ | Linux 6.1.82 LTS，裸机可启动 |
 | Python Shell | ✅ | 意图驱动，CDM: yes，24个原语，AI 动态生成 |
-| **C Shell** | ✅ **新** | 纯 C99，零 Python，零依赖，裸机启动 |
-| **C 原语库** | ✅ **新** | file/dns/http/shell_exec，纯系统调用 |
-| **C AMS** | 🔄 进行中 | curl 调用 DeepSeek，C 版意图分解 |
+| C Shell | ✅ | 纯 C99，零依赖，裸机启动 |
+| C 原语库 | ✅ | file/dns/http/shell_exec，纯系统调用 |
+| C AMS | 🔄 | curl 调用 DeepSeek，C 版意图分解 |
 | 动态原语生成 | ✅ | AI 实时生成，缓存，重启恢复 |
 | SANDBOX_EXEC | ✅ | AI 分析任意格式文件并执行 |
 | 多语言意图 | ✅ | 任意语言，AI 直接提取参数 |
-| 文件读写 | ✅ 真实 | 真实 I/O |
-| 网页抓取+总结 | ✅ 真实 | DNS→TCP→TLS→HTTP→HTML→AI |
-| NLP_TRANSLATE | ✅ 真实 | 任意语言互译 |
-| Synapse 融合 | 🔄 进行中 | 移植到自研 i386 内核 |
-| Env Engine | 📋 计划中 | AI 驱动的安全环境变量管理 |
+| **Synapse Kernel** | ✅ **新** | 自研 i386 内核，icm_shell 成功运行 |
+| **分页内存管理** | ✅ **新** | 自研 frame allocator + 4级页表，无 triple fault |
+| **ELF 加载器** | ✅ **新** | 用户态 ELF 加载执行 |
+| **VFS/TmpFS** | ✅ **新** | 虚拟文件系统 + 内存文件系统 |
+| Env Engine | 📋 | AI 驱动的安全环境变量管理 |
+| ISO 发布版 | 📋 | GRUB 引导，可直接刻盘启动 |
 
 ---
 
@@ -79,21 +79,77 @@ icm> fetch http://example.com
 icm> dns github.com
 ```
 
+### Synapse Kernel 模式（自研内核）⭐ 新
+
+```bash
+cd Synapse-Kernel
+make && qemu-system-i386 -kernel synapse.bin -m 128M -nographic -no-reboot
+```
+
+```
+Synapse OS v0.1
+AI-Native Operating System
+Initializing...
+[OK] Paging initialized
+[OK] Kernel heap initialized
+[OK] Filesystem initialized
+synapse> /bin/icm_shell
+
+  ICM-OS Shell [Synapse Kernel]
+  Type 'help' for commands, 'exit' to quit.
+
+icm> help
+  help    - show this help
+  read    - read file contents
+  write   - write file
+  exit    - exit shell
+```
+
+---
+
+## Synapse Kernel 架构
+
+自研 i386 裸机内核，从零实现：
+
+```
+Synapse Kernel
+├── 引导层        boot.asm（Multiboot2，直接进保护模式）
+├── 内存管理
+│   ├── Frame Allocator（bitmap，0-8MB 保留）
+│   ├── 分页（PD/PT 固定物理地址，identity-map 0-8MB）
+│   └── Kernel Heap（0xC0000000，bump allocator）
+├── 中断处理      IDT，256个门，timer/keyboard IRQ
+├── 进程管理      PCB，调度器，ELF 加载器
+├── 文件系统      VFS + TmpFS + ProcFS
+├── 系统调用      int 0x80，11个调用
+│   └── exit/fork/wait/write/read/open/close/mmap/munmap/sbrk/execve
+└── 用户态        /bin/icm_shell（ELF，embed 进内核）
+```
+
 ---
 
 ## 核心演示
 
-### 运行自创格式文件
+### 在自研内核上运行 icm_shell
 
 ```
-icm> run /data/app.icm
-内容: PRINT Hello from ICM format
-      PRINT 2+2=4
-[SANDBOX] AI: 自定义DSL，PRINT映射为print，转换后用Python执行
-Result: Hello from ICM format / 2+2=4  ✅
+synapse> /bin/icm_shell
+[ELF] loaded /bin/icm_shell, entry=0x00400000
+[EXEC] jumping to entry
+
+  ICM-OS Shell [Synapse Kernel]
+
+icm> help
+ICM-OS Shell commands:
+  help    - show this help
+  version - show version
+  exit    - exit shell
+  read    - read and print file contents
+  write   - create/truncate file with text
+  !<cmd>  - fork+exec program
 ```
 
-### 动态原语生成 + 缓存
+### 动态原语生成 + 缓存（Python 模式）
 
 ```
 # 第一次：AI 生成
@@ -102,7 +158,7 @@ icm> use UUID_GENERATE primitive to create a UUID
 [DynGen] Cached: /data/primitives/UUID_GENERATE.py
 Result: bc05d63e-718c-4ea6-804c-a1eeef3b83d1  ✅
 
-# 重启后：从缓存加载，零 API
+# 重启后：从缓存加载，零 API 调用
 [DynGen] Loaded from cache: UUID_GENERATE
 Result: 5d604c9e-...  ✅
 ```
@@ -110,26 +166,18 @@ Result: 5d604c9e-...  ✅
 ### 任意语言写文件
 
 ```
-icm> 把"你好世界"写入文件 /data/notes/chinese.txt → 你好世界 ✅
-icm> Schreibe "Hallo Welt" in die Datei /data/notes/german.txt → Hallo Welt ✅
+icm> 把"你好世界"写入文件 /data/notes/chinese.txt  ✅
+icm> Schreibe "Hallo Welt" in die Datei /data/notes/german.txt  ✅
 ```
 
 ### 真实 DNS + HTTP（C 版）
 
 ```
 icm> fetch http://example.com
-[HTTP_GET] ok url=http://example.com code=200 body_bytes=540
-[ICM] HTTP 200  ✅
+[HTTP_GET] ok code=200 body_bytes=540  ✅
 
 icm> dns github.com
-[DNS_RESOLVE] ok domain=github.com ip=20.205.243.166 ttl=300  ✅
-```
-
-### 系统信息读取
-
-```
-icm> show current memory usage
-MemTotal: 1023272 kB  MemFree: 841840 kB  ✅（真实内核数据）
+[DNS_RESOLVE] ok ip=20.205.243.166 ttl=300  ✅
 ```
 
 ---
@@ -162,7 +210,7 @@ make run         # 运行 C 版 shell
         ↓
    AMS 意图分解器
    ├─ Python 版：DeepSeek API + networkx DAG
-   └─ C 版：curl + DeepSeek API + 简单路由
+   └─ C 版：curl + DeepSeek API
         ↓
   CDM Capability Graph
         ↓
@@ -182,57 +230,44 @@ make run         # 运行 C 版 shell
   │  └─ http_get       ← pure socket             │
   └─────────────────────────────────────────────┘
         ↓
-Linux 6.1.82 / Synapse Kernel（自研 i386 内核，进行中）
+Synapse Kernel（自研 i386）/ Linux 6.1.82（备用）
 ```
 
 ---
 
-## Env Engine（计划中）
+## 里程碑
 
-AI 驱动的安全环境变量管理系统：
-
-```
-icm> 帮我配置 Flutter 开发环境
-→ ENV_PATCH: {"op": "set", "key": "FLUTTER_HOME", "value": "/opt/flutter"}
-→ ENV_PATCH: {"op": "append_path", "value": "$FLUTTER_HOME/bin"}
-→ SANDBOX_EXEC: flutter doctor
-→ 结果：环境就绪，不污染全局系统
-```
-
-**核心设计：**
-- AI 输出 `env_patch`（JSON 操作），不直接写 shell 配置
-- Session 级隔离，每个会话独立环境
-- 可回滚，用户确认后才持久化
-- 禁止覆盖系统关键变量
-
----
-
-## 与 Synapse Kernel 融合
-
-ICM-OS 正在移植到 Synapse Kernel（自研 i386 内核）：
-
-```
-Synapse Kernel（自研引导/内存/进程/VFS）
-        ↓
-ICM-OS C Shell 作为第一个用户态进程（PID 1）
-        ↓
-C 原语层（file/dns/http/exec）
-        ↓
-AMS 意图分解
-```
-
-目标：完全脱离 Linux，跑在自研内核上。
+| 阶段 | 状态 | 内容 |
+|------|------|------|
+| M1 | ✅ | 可启动 ISO + CDM + 网络 |
+| M2 | ✅ | 真实 DNS / HTTP / 翻译 |
+| M3 | ✅ | FILE_READ/WRITE + HTML_PARSE + NLP_SUMMARIZE |
+| M4 | ✅ | 动态原语生成，系统自我扩展 |
+| M5 | ✅ | SANDBOX_EXEC，任意格式文件执行 |
+| M6 | ✅ | C 原语库 + C 版 shell，零依赖 |
+| M7 | ✅ | Synapse Kernel 融合，icm_shell 跑在自研内核 |
+| M8 | 📋 | Env Engine，AI 驱动的安全环境管理 |
+| M9 | 📋 | 稳定发行版 v1.0，GRUB 引导 ISO |
 
 ---
 
 ## 快速开始
 
 ```bash
+# Python 模式（功能最完整）
 git clone https://github.com/jinbohao1688/icm-os.git
 cd icm-os
 echo "DEEPSEEK_API_KEY=your_key" > .env
 pip install -r requirements.txt
-python3 cli.py   # 开发模式，不需要内核
+python3 cli.py
+
+# C 模式（零依赖）
+cd c-primitives && make icm_shell && ./icm_shell
+
+# Synapse Kernel 模式（自研内核）
+git clone https://github.com/jinbohao1688/Synapse-Kernel.git
+cd Synapse-Kernel && make
+qemu-system-i386 -kernel synapse.bin -m 128M -nographic -no-reboot
 ```
 
 ---
@@ -244,40 +279,28 @@ icm-os/
 ├── ams/              # 意图分解器（Python）
 │   ├── decomposer.py # DeepSeek API + DAG
 │   └── dynamic_gen.py# 动态原语生成
-├── core/             # 执行引擎
 ├── primitives/       # 24个预定义原语
 │   ├── stateless/    # network/nlp/file/rendering
 │   └── stateful/     # cache/session/file_state
-├── gbt/              # ARM64→x86-64 翻译
-├── c-primitives/     # C 原语库（新）
+├── c-primitives/     # C 原语库
 │   ├── file_primitive.c
 │   ├── shell_exec.c
 │   ├── dns_resolve.c
 │   ├── http_get.c
 │   ├── ams.c
 │   └── icm_shell.c   # C 版 shell
-├── iso-build/        # ISO 构建系统
-│   ├── build.sh
-│   ├── rebuild_initrd.sh
-│   └── icm_shell.py  # Python 版 shell
-└── cli.py            # 开发模式 CLI
+└── iso-build/        # ISO 构建系统
+
+Synapse-Kernel/
+├── kernel/
+│   ├── boot/         # Multiboot2 引导
+│   ├── mm/           # 内存管理（paging + heap）
+│   ├── proc/         # 进程调度 + ELF 加载
+│   ├── fs/           # VFS + TmpFS + ProcFS
+│   └── syscall.c     # 11个系统调用
+├── lib/              # 驱动库（vga/serial/keyboard）
+└── apps/icm_shell/   # 用户态 icm_shell
 ```
-
----
-
-## 里程碑
-
-| 阶段 | 状态 | 内容 |
-|---|---|---|
-| M1 | ✅ | 可启动 ISO + CDM + 网络 |
-| M2 | ✅ | 真实 DNS / HTTP / 翻译 |
-| M3 | ✅ | FILE_READ/WRITE + HTML_PARSE + NLP_SUMMARIZE |
-| M4 | ✅ | 动态原语生成，系统自我扩展 |
-| M5 | ✅ | SANDBOX_EXEC，任意格式文件执行 |
-| M6 | ✅ | C 原语库 + C 版 shell，零依赖 |
-| M7 | 🔄 | Synapse Kernel 融合，自研内核 |
-| M8 | 📋 | Env Engine，安全环境管理 |
-| M9 | 📋 | 稳定发行版 v1.0 |
 
 ---
 
@@ -294,4 +317,5 @@ MIT License
 
 ---
 
-*ICM-OS is a research prototype. Not for production use.*
+*ICM-OS 是研究原型，不用于生产环境。*
+*核心价值：验证"意图驱动"的人机交互模型。*
